@@ -2,5 +2,5 @@ node_modules/
 .vercel/
 .wrangler/
 .dev.vars
-.env
+.env*
 .DS_Store
