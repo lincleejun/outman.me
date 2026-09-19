@@ -7,13 +7,22 @@ Two situations. Pick one.
 ```bash
 git clone https://github.com/lincleejun/outman.me ~/workspace/personal/outman.me
 cd ~/workspace/personal/outman.me
-scripts/install.sh        # .env from example, links the share-page skill, adds the global Claude rule
+scripts/install.sh        # copies skills to ~/.claude/skills, writes the rule block into ~/.claude/CLAUDE.md, seeds ~/.config/outman/env
 $EDITOR .env              # fill from the Secrets table below
 scripts/doctor.sh         # everything should be ok
 ```
 
 Only if this machine will also deploy: `bunx vercel login` and `cd share && bunx wrangler login`.
 Pushing to `main` deploys from GitHub either way, so most machines never need those.
+
+## Update a machine
+
+```bash
+cd ~/workspace/personal/outman.me && git pull && scripts/install.sh
+```
+
+Skills and rules are copied, not linked. The repo is the only place to edit them.
+A machine that only shares pages needs just `~/.config/outman/env` with `SHARE_TOKEN=…` and `gh auth login` for history.
 
 ## Secrets
 

@@ -25,7 +25,6 @@ Worker because it needs KV, not a build.
 | `site/vercel.json` | Redirects: `/setup`, `/gh`, `/share`. |
 | `share/` | Worker: `POST /share` → `{id,url}`, `GET /share/<id>`. Retention = `TTL_DAYS` in wrangler.toml (default 90, hard cap from creation, `0` = forever). With `SHARE_TOKEN`: `GET /share` lists everything (title, date, size), `DELETE /share/<id>` removes one. `node share/test.mjs` is the check. |
 | `scripts/new-project.sh` | New Vercel project + `<name>.outman.cc` + Cloudflare CNAME + deploy. |
-| `skills/share-page/share.sh` | `share.sh page.html` → prints the public link. |
 | `.github/workflows/share.yml` | Deploys the worker on push to `share/**`. |
 | `share/archive.mjs` + `.github/workflows/archive.yml` | Weekly: pages older than 30 days (or the oldest once KV passes 500MB) are copied into the private `share-archive` repo (pushed straight to its `main`, no PR), then deleted from KV. Archived files older than `KEEP_DAYS` (90) are pruned from the tree. Short-term stays in KV, long-term lives in git. |
 
@@ -55,15 +54,16 @@ cd ..
 #    GitHub → Settings → Secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
 #    SHARE_TOKEN, ARCHIVE_TOKEN (fine-grained PAT, contents:write on share-archive)
 
-# 3. agent skill
-ln -s "$PWD/skills/share-page" ~/.claude/skills/share-page
+# 3. agent skill + global rule + ~/.config/outman/env
+scripts/install.sh
 ```
 
 ## Daily
 
 ```bash
 scripts/new-project.sh myapp ~/code/myapp      # live at https://myapp.outman.cc, then add it to site/data/projects.json
-skills/share-page/share.sh report.html                   # https://share.outman.cc/share/<id>
+~/.claude/skills/share-page/share publish report.html   # https://share.outman.cc/share/<id>  (installed copy)
+~/.claude/skills/share-page/share list                  # everything shared, live + archived
 curl -H "Authorization: Bearer $SHARE_TOKEN" https://share.outman.cc/share   # audit: everything still stored
 ```
 

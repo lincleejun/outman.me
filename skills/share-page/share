@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# share — publish HTML pages to share.outman.cc and find what was shared before.
+#
+#   share publish <page.html> [title]   → prints https://share.outman.cc/share/<id>   (expires 90 days after publish)
+#   share list [pattern]                everything, newest first: date · id · title · live|archive   (pattern: title/id/date)
+#   share get <id> [out.html]           download by id; live first, then archive
+#   share grep <pattern>                full-text search inside archived pages
+#   share sync                          clone/pull the archive to ~/.cache/outman/share-archive (others call it as needed)
+#
+# Config: ~/.config/outman/env with SHARE_TOKEN=… (install.sh writes it). Archive commands need `gh` logged in.
+set -euo pipefail
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/outman/env"; [ -f "$cfg" ] && { set -a; . "$cfg"; set +a; }
+base=${SHARE_URL:-https://share.outman.cc}
+repo=${SHARE_ARCHIVE_REPO:-lincleejun/share-archive}
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/outman/share-archive"
+auth=(-H "Authorization: Bearer ${SHARE_TOKEN:-}")
+cmd=${1:-help}; shift || true
+
+need_token() { [ -n "${SHARE_TOKEN:-}" ] || { echo "no SHARE_TOKEN: put SHARE_TOKEN=… in $cfg (or run install.sh from the outman.me repo)" >&2; exit 1; }; }
+sync() { if [ -d "$cache/.git" ]; then git -C "$cache" pull -q --ff-only; else mkdir -p "$(dirname "$cache")"; gh repo clone "$repo" "$cache" -- -q; fi; }
+live() {
+  [ -n "${SHARE_TOKEN:-}" ] || return 0
+  curl -sf "${auth[@]}" "$base/share" | python3 -c '
+import json,sys
+for i in json.load(sys.stdin)["items"]: print("  ".join([i.get("at","")[:10], i["id"], i.get("title",""), "live", i["url"]]))'
+}
+archived() {
+  [ -f "$cache/index.jsonl" ] || return 0
+  python3 -c '
+import json,sys
+for l in open(sys.argv[1]):
+    if l.strip(): e=json.loads(l); print("  ".join([e.get("at","")[:10], e["id"], e.get("title",""), "archive", e["file"]]))' "$cache/index.jsonl"
+}
+
+case "$cmd" in
+  publish)
+    need_token; file=${1:?usage: share publish <page.html> [title]}
+    q=""; [ -n "${2:-}" ] && q="?title=$(printf %s "$2" | sed 's/ /+/g')"
+    curl -sf -X POST "$base/share$q" "${auth[@]}" --data-binary @"$file" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p' ;;
+  list) sync 2>/dev/null || true; { live; archived; } | sort -r | grep -i -- "${1:-.}" || echo "(nothing matched)" ;;
+  get)
+    id=${1:?usage: share get <id> [out.html]}; out=${2:-$id.html}
+    if curl -sf -o "$out" "$base/share/$id"; then echo "$out  (live)"; exit; fi
+    sync; f=$(archived | awk -v id="$id" '$2==id {print $NF}' | head -1)
+    [ -n "$f" ] && cp "$cache/$f" "$out" && echo "$out  (archive $f)" || { echo "not found: $id" >&2; exit 1; } ;;
+  grep) sync; grep -ril --include='*.html' -e "${1:?usage: share grep <pattern>}" "$cache" | while read -r f; do archived | awk -v id="$(basename "$f" .html)" '$2==id'; done ;;
+  sync) sync; echo "synced → $cache" ;;
+  *) sed -n '2,9p' "$0"; [ "$cmd" = help ] || exit 1 ;;
+esac

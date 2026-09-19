@@ -9,7 +9,7 @@ This repo is the infra for **outman.cc**. Read this first; `README.md` has the h
 | Change the homepage | `site/data/projects.json` (content) · `site/index.html` (layout). Push to `main` → Vercel redeploys. |
 | Add a redirect on outman.cc | `site/vercel.json` |
 | Add a sub-project at `<name>.outman.cc` | `scripts/new-project.sh <name> <dir>` (needs `.env` loaded), then add an entry to `projects.json` |
-| Share an HTML page with someone | `skills/share-page/share.sh page.html` → `https://share.outman.cc/share/<id>`. Skill dir is self-contained: `share.sh`, `history.sh` (live + archived lookup), `RULE.md` |
+| Share an HTML page with someone | `skills/share-page/share publish page.html` → `https://share.outman.cc/share/<id>`. Skill dir is the source of truth; machines run `scripts/install.sh` to get a copy. one CLI `share publish|list|get|grep|sync`, `RULE.md` |
 | Change the share worker | `share/worker.js` · run `node share/test.mjs` · push to `main` → `.github/workflows/share.yml` deploys |
 | Change share retention | `share/wrangler.toml` → `TTL_DAYS` (hard cap from creation, `0` = forever) |
 | Archive rules | `share/archive.mjs` (`MAX_DAYS` 30, `MAX_MB` 500, `KEEP_DAYS` 90) · `.github/workflows/archive.yml` (Mon 03:00 UTC) |
@@ -17,11 +17,12 @@ This repo is the infra for **outman.cc**. Read this first; `README.md` has the h
 | Archived pages | private repo `lincleejun/share-archive`, `YYYY-MM/<id>.html` + `index.jsonl` |
 | Check that everything works / find what broke | `scripts/doctor.sh` — every FAIL prints a `fix:` line. Same script runs daily on GitHub (`.github/workflows/health.yml`) |
 | Set up a new machine / rebuild from zero | `INSTALL.md` · `scripts/install.sh` |
+| Update skills/rules on a machine after changing them here | push, then on that machine `git pull && scripts/install.sh` (copies, replaces the rule block) |
 
 ## Secrets
 
 Local: `.env` (gitignored) holds `CF_API_TOKEN`, `CF_ZONE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `SHARE_TOKEN`, `ARCHIVE_TOKEN`.
-Load with `set -a; source .env; set +a`. `scripts/share.sh` reads `SHARE_TOKEN` from `.env` on its own.
+Load with `set -a; source .env; set +a`. The `share` CLI reads `SHARE_TOKEN` from `~/.config/outman/env`, which `scripts/install.sh` seeds from `.env`.
 CI: the same four (minus `CF_ZONE_ID`) are GitHub Actions secrets on this repo. Vercel and wrangler are logged in via CLI OAuth on this machine.
 
 ## How deploys happen
