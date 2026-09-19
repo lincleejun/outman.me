@@ -1,6 +1,6 @@
 {
   "name": "outman",
-  "tagline": "builds tools, ships small things",
+  "tagline": "event in, context out",
   "projects": [
     {
       "name": "share",

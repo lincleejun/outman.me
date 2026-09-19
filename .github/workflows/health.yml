@@ -1,0 +1,17 @@
+name: health
+on:
+  schedule: [{ cron: "0 4 * * *" }]   # daily; a failure emails the repo owner
+  workflow_dispatch:
+jobs:
+  doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y -qq dnsutils >/dev/null
+      - run: bash scripts/doctor.sh
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SHARE_TOKEN: ${{ secrets.SHARE_TOKEN }}
+          ARCHIVE_TOKEN: ${{ secrets.ARCHIVE_TOKEN }}
