@@ -15,6 +15,8 @@ This repo is the infra for **outman.cc**. Read this first; `README.md` has the h
 | Archive rules | `share/archive.mjs` (`MAX_DAYS` 30, `MAX_MB` 500, `KEEP_DAYS` 90) · `.github/workflows/archive.yml` (Mon 03:00 UTC) |
 | See what is currently stored | `curl -H "Authorization: Bearer $SHARE_TOKEN" https://share.outman.cc/share` |
 | Archived pages | private repo `lincleejun/share-archive`, `YYYY-MM/<id>.html` + `index.jsonl` |
+| Check that everything works / find what broke | `scripts/doctor.sh` — every FAIL prints a `fix:` line. Same script runs daily on GitHub (`.github/workflows/health.yml`) |
+| Set up a new machine / rebuild from zero | `INSTALL.md` · `scripts/install.sh` |
 
 ## Secrets
 
@@ -28,6 +30,10 @@ CI: the same four (minus `CF_ZONE_ID`) are GitHub Actions secrets on this repo. 
 - **Worker**: `.github/workflows/share.yml` on push touching `share/**`. Runs the test, then `wrangler deploy`.
 - **Archive**: `.github/workflows/archive.yml` in *this* repo. It checks out `share-archive` with `ARCHIVE_TOKEN`, runs `archive.mjs`, and pushes straight to that repo's `main` as `archive-bot`. No PR, no merge step. Manual run: `gh workflow run archive.yml -f max_days=0`.
 - **DNS**: Cloudflare, records are DNS-only (proxy off) for anything on Vercel. `share.outman.cc` is created by wrangler as a custom domain.
+
+## Slogan
+
+**event in, context out.** Everything is built as harness/infra: an event (push, cron, curl) goes in, a deployed and checked result comes out. Keep new work in that shape: one script per flow, a check for every flow.
 
 ## Rules
 

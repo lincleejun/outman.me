@@ -1,5 +1,7 @@
 # outman.me
 
+*event in, context out.*
+
 Infrastructure for **outman.cc**: the site, the share service, and the one-command flow for
 adding a new sub-project. Everything public lives here; everything private lives only in the
 Cloudflare dashboard.
@@ -27,6 +29,10 @@ Worker because it needs KV, not a build.
 | `skills/share-page/` | Agent skill: publish pages to share.outman.cc instead of a third-party host. |
 | `.github/workflows/share.yml` | Deploys the worker on push to `share/**`. |
 | `share/archive.mjs` + `.github/workflows/archive.yml` | Weekly: pages older than 30 days (or the oldest once KV passes 500MB) are copied into the private `share-archive` repo (pushed straight to its `main`, no PR), then deleted from KV. Archived files older than `KEEP_DAYS` (90) are pruned from the tree. Short-term stays in KV, long-term lives in git. |
+
+## Setup
+
+New machine: `scripts/install.sh` then `scripts/doctor.sh`. Full story, secrets table and rebuild-from-zero: **[INSTALL.md](INSTALL.md)**.
 
 ## Bootstrap (once)
 
