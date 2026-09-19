@@ -5,6 +5,8 @@
 import { mkdir, writeFile, appendFile, access, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 
+const num = (v, d) => (v === undefined || v === "" ? d : +v);
+
 export function select(items, { maxDays = 30, maxMB = 500, now = Date.now() } = {}) {
   const old = items.filter((i) => now - Date.parse(i.at) > maxDays * 86400e3);
   const rest = items.filter((i) => !old.includes(i)).sort((a, b) => a.at.localeCompare(b.at));
@@ -17,7 +19,7 @@ async function main(dir = process.argv[2] || "./archive") {
   const base = process.env.SHARE_URL || "https://share.outman.cc";
   const headers = { authorization: `Bearer ${process.env.SHARE_TOKEN}` };
   const { items } = await (await fetch(`${base}/share`, { headers })).json();
-  const picked = select(items, { maxDays: +process.env.MAX_DAYS || 30, maxMB: +process.env.MAX_MB || 500 });
+  const picked = select(items, { maxDays: num(process.env.MAX_DAYS, 30), maxMB: num(process.env.MAX_MB, 500) });
   for (const it of picked) {
     const sub = join(dir, it.at.slice(0, 7));
     const file = join(sub, `${it.id}.html`);
@@ -32,7 +34,7 @@ async function main(dir = process.argv[2] || "./archive") {
     console.log(`archived ${it.id}  ${it.title || ""}`);
   }
   console.log(`${picked.length}/${items.length} archived`);
-  await prune(dir, +process.env.KEEP_DAYS || 90);
+  await prune(dir, num(process.env.KEEP_DAYS, 90));
 }
 
 export async function prune(dir, keepDays, now = Date.now()) {
