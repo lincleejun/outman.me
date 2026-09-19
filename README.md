@@ -26,6 +26,7 @@ Worker because it needs KV, not a build.
 | `scripts/share.sh` | `share.sh page.html` → prints the public link. |
 | `skills/share-page/` | Agent skill: publish pages to share.outman.cc instead of a third-party host. |
 | `.github/workflows/share.yml` | Deploys the worker on push to `share/**`. |
+| `share/archive.mjs` + `.github/workflows/archive.yml` | Weekly: pages older than 30 days (or the oldest once KV passes 500MB) are copied into the private `share-archive` repo, then deleted from KV. Short-term stays in KV, long-term lives in git. |
 
 ## Bootstrap (once)
 
@@ -45,7 +46,8 @@ bunx vercel deploy --prod --yes && cd ..
 cd share && bunx wrangler login && bunx wrangler deploy   # provisions KV, writes its id into wrangler.toml → commit it
 bunx wrangler secret put SHARE_TOKEN                        # optional: lock POST /share to yourself
 cd ..
-#    GitHub → Settings → Secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
+#    GitHub → Settings → Secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
+#    SHARE_TOKEN, ARCHIVE_TOKEN (fine-grained PAT, contents:write on share-archive)
 
 # 3. agent skill
 ln -s "$PWD/skills/share-page" ~/.claude/skills/share-page

@@ -36,3 +36,18 @@ assert.ok(list.items.some((i) => i.title === "custom"));
 assert.equal((await worker.fetch(new Request(url, { method: "DELETE", headers: auth }), locked, ctx)).status, 204);
 assert.equal((await worker.fetch(new Request(url), env, ctx)).status, 410);
 console.log("ok");
+
+// archive selection rule
+const { select } = await import("./archive.mjs");
+const now = Date.parse("2026-09-19T00:00:00Z");
+const day = (n) => new Date(now - n * 86400e3).toISOString();
+const items = [
+  { id: "a", at: day(40), bytes: 1 },
+  { id: "b", at: day(10), bytes: 3 * 1048576 },
+  { id: "c", at: day(5), bytes: 3 * 1048576 },
+  { id: "d", at: day(1), bytes: 3 * 1048576 },
+];
+assert.deepEqual(select(items, { maxDays: 30, maxMB: 100, now }).map((i) => i.id), ["a"]);
+assert.deepEqual(select(items, { maxDays: 30, maxMB: 7, now }).map((i) => i.id), ["a", "b"]);
+assert.deepEqual(select(items, { maxDays: 30, maxMB: 0.5, now }).map((i) => i.id), ["a", "b", "c", "d"]);
+console.log("ok archive");
