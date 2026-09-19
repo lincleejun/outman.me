@@ -1,0 +1,15 @@
+name = "outman-share"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+
+# Landing page at "/"; the worker owns /share and /share/*.
+[assets]
+directory = "./site"
+binding = "ASSETS"
+run_worker_first = ["/share", "/share/*"]
+
+# No id on purpose: the first `wrangler deploy` provisions a KV namespace and writes the id here. Commit it.
+[[kv_namespaces]]
+binding = "SHARES"
+
+routes = [{ pattern = "share.outman.cc", custom_domain = true }]

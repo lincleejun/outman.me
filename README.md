@@ -1,0 +1,80 @@
+# outman.me
+
+Infrastructure for **outman.cc**: the site, the share service, and the one-command flow for
+adding a new sub-project. Everything public lives here; everything private lives only in the
+Cloudflare dashboard.
+
+```
+outman.cc            static site        Vercel   ← site/
+share.outman.cc      HTML share worker  CF Worker ← share/
+<name>.outman.cc     any sub-project    Vercel   ← scripts/new-project.sh
+outman.cc/setup      → bootstrap script for a fresh machine (infra repo)
+outman.cc/gh         → this repo
+```
+
+DNS for every hostname is Cloudflare. Apps are Vercel. The share service is a Cloudflare
+Worker because it needs KV, not a build.
+
+## Layout
+
+| Path | What |
+| --- | --- |
+| `site/` | Static site. Content is `site/data/projects.json`; the page renders it with no external API calls. |
+| `site/vercel.json` | Redirects: `/setup`, `/gh`, `/share`. |
+| `share/` | Worker: `POST /share` → `{id,url}`, `GET /share/<id>`. Links expire after one idle day. `node share/test.mjs` is the check. |
+| `scripts/new-project.sh` | New Vercel project + `<name>.outman.cc` + Cloudflare CNAME + deploy. |
+| `scripts/share.sh` | `share.sh page.html` → prints the public link. |
+| `skills/share-page/` | Agent skill: publish pages to share.outman.cc instead of a third-party host. |
+| `.github/workflows/share.yml` | Deploys the worker on push to `share/**`. |
+
+## Bootstrap (once)
+
+```bash
+cp .env.example .env && $EDITOR .env        # CF_API_TOKEN, CF_ZONE_ID, CLOUDFLARE_ACCOUNT_ID
+set -a; source .env; set +a
+
+# 1. site → Vercel, root directory = site
+cd site && bunx vercel login && bunx vercel link --yes --project outman-site
+bunx vercel domains add outman.cc outman-site
+bunx vercel domains add www.outman.cc outman-site
+bunx vercel deploy --prod --yes && cd ..
+#    Cloudflare DNS: A outman.cc → 76.76.21.21 (proxied ok, SSL mode Full), CNAME www → cname.vercel-dns.com
+#    Vercel Git integration on this repo → every push to main redeploys the site.
+
+# 2. share worker
+cd share && bunx wrangler login && bunx wrangler deploy   # provisions KV, writes its id into wrangler.toml → commit it
+bunx wrangler secret put SHARE_TOKEN                        # optional: lock POST /share to yourself
+cd ..
+#    GitHub → Settings → Secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
+
+# 3. agent skill
+ln -s "$PWD/skills/share-page" ~/.claude/skills/share-page
+```
+
+## Daily
+
+```bash
+scripts/new-project.sh myapp ~/code/myapp      # live at https://myapp.outman.cc, then add it to site/data/projects.json
+scripts/share.sh report.html                   # https://share.outman.cc/share/<id>
+```
+
+Edit `site/data/projects.json`, push, done.
+
+## Fresh machine
+
+```bash
+curl -fsSL https://outman.cc/setup | sh
+```
+
+`/setup` redirects to the public bootstrap script in the `infra` repo, which installs tools and
+pulls the private half with `gh` after login. Keep secrets and personal hostnames out of the
+public half.
+
+## Privacy rules
+
+- Private subdomains are created in the Cloudflare dashboard only and never named in this repo,
+  `projects.json`, or commit messages. Put them behind Cloudflare Access.
+- The site makes no calls to GitHub or any social API. Nothing here lists follower counts,
+  repo counts, or social handles. Add links to `projects.json` only when you want them public.
+- Share links are unlisted (`noindex`, content-hash ids, one-day idle TTL). Treat a link as a
+  capability token.

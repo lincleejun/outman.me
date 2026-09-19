@@ -1,0 +1,8 @@
+{
+  "redirects": [
+    { "source": "/setup", "destination": "https://raw.githubusercontent.com/lincleejun/infra/main/setup.sh", "permanent": false },
+    { "source": "/gh", "destination": "https://github.com/lincleejun/outman.me", "permanent": false },
+    { "source": "/share", "destination": "https://share.outman.cc", "permanent": false }
+  ],
+  "headers": [{ "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }]
+}

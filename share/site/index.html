@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>share.outman.cc</title>
+<style>
+  :root { color-scheme: light dark; --fg: #1a1a1a; --bg: #fafaf7; --mut: #6b6b6b; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #ececec; --bg: #111; --mut: #9a9a9a; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  main { max-width: 640px; margin: 12vh auto; padding: 0 16px; }
+  h1 { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
+  p { color: var(--mut); margin: 0 0 24px; }
+  pre { background: rgba(127,127,127,.12); padding: 14px 16px; border-radius: 6px; overflow-x: auto; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>share.outman.cc</h1>
+  <p>Transit desk for HTML pages. Links live one idle day, then vanish.</p>
+  <pre>curl -X POST https://share.outman.cc/share --data-binary @page.html
+# {"id":"…","url":"https://share.outman.cc/share/…"}</pre>
+</main>
+</body>
+</html>

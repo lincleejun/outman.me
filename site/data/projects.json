@@ -1,0 +1,13 @@
+{
+  "name": "outman",
+  "tagline": "builds tools, ships small things",
+  "projects": [
+    {
+      "name": "share",
+      "href": "https://share.outman.cc",
+      "pitch": "POST an HTML page, get a public link — a transit desk for agent-generated reports",
+      "year": "2026",
+      "tier": 1
+    }
+  ]
+}
