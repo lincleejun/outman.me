@@ -39,7 +39,8 @@ cd site && bunx vercel login && bunx vercel link --yes --project outman-site
 bunx vercel domains add outman.cc outman-site
 bunx vercel domains add www.outman.cc outman-site
 bunx vercel deploy --prod --yes && cd ..
-#    Cloudflare DNS: A outman.cc → 76.76.21.21 (proxied ok, SSL mode Full), CNAME www → cname.vercel-dns.com
+#    Cloudflare DNS (both DNS-only, proxy OFF — proxied apex blocks Vercel cert issuance with a 525):
+#      A outman.cc → 76.76.21.21 · CNAME www → cname.vercel-dns.com
 #    Vercel Git integration on this repo → every push to main redeploys the site.
 
 # 2. share worker
