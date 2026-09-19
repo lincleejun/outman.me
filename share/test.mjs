@@ -6,7 +6,7 @@ const kv = new Map();
 const env = {
   SHARES: {
     put: async (k, v, o = {}) => kv.set(k, { v, m: o.metadata }),
-    getWithMetadata: async (k) => ({ value: kv.get(k)?.v ?? null, metadata: kv.get(k)?.m ?? null }),
+    get: async (k) => kv.get(k)?.v ?? null,
     delete: async (k) => kv.delete(k),
     list: async () => ({ keys: [...kv].map(([name, { m }]) => ({ name, metadata: m })) }),
   },
@@ -50,4 +50,15 @@ const items = [
 assert.deepEqual(select(items, { maxDays: 30, maxMB: 100, now }).map((i) => i.id), ["a"]);
 assert.deepEqual(select(items, { maxDays: 30, maxMB: 7, now }).map((i) => i.id), ["a", "b"]);
 assert.deepEqual(select(items, { maxDays: 30, maxMB: 0.5, now }).map((i) => i.id), ["a", "b", "c", "d"]);
+
+// prune: files past KEEP_DAYS leave the tree and the index
+const { prune } = await import("./archive.mjs");
+const { mkdtemp, writeFile: wf, readFile: rf, stat } = await import("node:fs/promises");
+const tmp = await mkdtemp("/tmp/arch-");
+await wf(`${tmp}/old.html`, "x"); await wf(`${tmp}/new.html`, "y");
+await wf(`${tmp}/index.jsonl`, [{ id: "o", at: day(100), file: "old.html" }, { id: "n", at: day(3), file: "new.html" }].map((e) => JSON.stringify(e)).join("\n") + "\n");
+assert.equal(await prune(tmp, 90, now), 1);
+assert.equal(await stat(`${tmp}/old.html`).catch(() => null), null);
+assert.ok(await stat(`${tmp}/new.html`));
+assert.equal((await rf(`${tmp}/index.jsonl`, "utf8")).trim().split("\n").length, 1);
 console.log("ok archive");

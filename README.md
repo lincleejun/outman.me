@@ -21,12 +21,12 @@ Worker because it needs KV, not a build.
 | --- | --- |
 | `site/` | Static site. Content is `site/data/projects.json`; the page renders it with no external API calls. |
 | `site/vercel.json` | Redirects: `/setup`, `/gh`, `/share`. |
-| `share/` | Worker: `POST /share` → `{id,url}`, `GET /share/<id>`. Retention = `TTL_DAYS` in wrangler.toml (default 90, idle-based, `0` = forever). With `SHARE_TOKEN`: `GET /share` lists everything (title, date, size), `DELETE /share/<id>` removes one. `node share/test.mjs` is the check. |
+| `share/` | Worker: `POST /share` → `{id,url}`, `GET /share/<id>`. Retention = `TTL_DAYS` in wrangler.toml (default 90, hard cap from creation, `0` = forever). With `SHARE_TOKEN`: `GET /share` lists everything (title, date, size), `DELETE /share/<id>` removes one. `node share/test.mjs` is the check. |
 | `scripts/new-project.sh` | New Vercel project + `<name>.outman.cc` + Cloudflare CNAME + deploy. |
 | `scripts/share.sh` | `share.sh page.html` → prints the public link. |
 | `skills/share-page/` | Agent skill: publish pages to share.outman.cc instead of a third-party host. |
 | `.github/workflows/share.yml` | Deploys the worker on push to `share/**`. |
-| `share/archive.mjs` + `.github/workflows/archive.yml` | Weekly: pages older than 30 days (or the oldest once KV passes 500MB) are copied into the private `share-archive` repo, then deleted from KV. Short-term stays in KV, long-term lives in git. |
+| `share/archive.mjs` + `.github/workflows/archive.yml` | Weekly: pages older than 30 days (or the oldest once KV passes 500MB) are copied into the private `share-archive` repo, then deleted from KV. Archived files older than `KEEP_DAYS` (90) are pruned from the tree. Short-term stays in KV, long-term lives in git. |
 
 ## Bootstrap (once)
 

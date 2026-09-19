@@ -1,5 +1,5 @@
 // share.outman.cc — POST an HTML page, get a public link. Cloudflare Worker + KV.
-// Retention is TTL_DAYS (0 = keep forever); every view re-arms the clock. Ids are content hashes.
+// Hard retention: a page is deleted TTL_DAYS after creation, viewed or not (0 = keep forever). Ids are content hashes.
 const MAX = 4 << 20;
 
 async function hashId(buf) {
@@ -13,7 +13,7 @@ const ttlOpts = (env) => {
 const authed = (req, env) => env.SHARE_TOKEN && req.headers.get("authorization") === `Bearer ${env.SHARE_TOKEN}`;
 
 export default {
-  async fetch(req, env, ctx) {
+  async fetch(req, env) {
     const url = new URL(req.url);
     const m = url.pathname.match(/^\/share(?:\/([0-9a-f]{16}))?$/);
     if (!m) return env.ASSETS.fetch(req);
@@ -42,9 +42,8 @@ export default {
     }
 
     if (req.method === "GET" && m[1]) {
-      const { value, metadata } = await env.SHARES.getWithMetadata(m[1], "arrayBuffer");
+      const value = await env.SHARES.get(m[1], "arrayBuffer");
       if (!value) return new Response("expired", { status: 410 });
-      if (ttlOpts(env).expirationTtl) ctx.waitUntil(env.SHARES.put(m[1], value, { ...ttlOpts(env), metadata }));
       return new Response(value, {
         headers: { "content-type": "text/html;charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" },
       });

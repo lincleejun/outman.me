@@ -5,6 +5,7 @@ on:
     inputs:
       max_days: { default: "30" }
       max_mb: { default: "500" }
+      keep_days: { default: "90" }
 jobs:
   archive:
     runs-on: ubuntu-latest
@@ -20,6 +21,7 @@ jobs:
           SHARE_TOKEN: ${{ secrets.SHARE_TOKEN }}
           MAX_DAYS: ${{ inputs.max_days || '30' }}
           MAX_MB: ${{ inputs.max_mb || '500' }}
+          KEEP_DAYS: ${{ inputs.keep_days || '90' }}
       - run: |
           cd archive
           git config user.name archive-bot && git config user.email archive-bot@outman.cc

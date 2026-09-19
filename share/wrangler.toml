@@ -13,6 +13,6 @@ run_worker_first = ["/share", "/share/*"]
 binding = "SHARES"
 
 [vars]
-TTL_DAYS = "90"   # days a link lives, re-armed on every view; "0" = keep forever
+TTL_DAYS = "90"   # hard cap: deleted 90 days after creation even if the archive job never runs; "0" = keep forever
 
 routes = [{ pattern = "share.outman.cc", custom_domain = true }]

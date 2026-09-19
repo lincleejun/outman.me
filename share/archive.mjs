@@ -1,7 +1,8 @@
 // Archive share pages to disk, then delete them from KV.
 // Rule: anything older than MAX_DAYS, plus the oldest until the rest fits in MAX_MB.
+// Then prune archived files older than KEEP_DAYS from the archive tree (git history still has them).
 // usage: SHARE_TOKEN=… node share/archive.mjs [dir=./archive]
-import { mkdir, writeFile, appendFile, access } from "node:fs/promises";
+import { mkdir, writeFile, appendFile, access, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 
 export function select(items, { maxDays = 30, maxMB = 500, now = Date.now() } = {}) {
@@ -31,5 +32,19 @@ async function main(dir = process.argv[2] || "./archive") {
     console.log(`archived ${it.id}  ${it.title || ""}`);
   }
   console.log(`${picked.length}/${items.length} archived`);
+  await prune(dir, +process.env.KEEP_DAYS || 90);
+}
+
+export async function prune(dir, keepDays, now = Date.now()) {
+  const idx = join(dir, "index.jsonl");
+  const lines = await readFile(idx, "utf8").then((t) => t.trim().split("\n").filter(Boolean), () => []);
+  const keep = [];
+  for (const l of lines) {
+    const e = JSON.parse(l);
+    if (now - Date.parse(e.at) > keepDays * 86400e3) { await rm(join(dir, e.file), { force: true }); console.log(`pruned ${e.id}`); }
+    else keep.push(l);
+  }
+  if (keep.length !== lines.length) await writeFile(idx, keep.map((l) => l + "\n").join(""));
+  return lines.length - keep.length;
 }
 if (process.argv[1] === new URL(import.meta.url).pathname) main();
