@@ -9,7 +9,7 @@ This repo is the infra for **outman.cc**. Read this first; `README.md` has the h
 | Change the homepage | `site/data/projects.json` (content) · `site/index.html` (layout). Push to `main` → Vercel redeploys. |
 | Add a redirect on outman.cc | `site/vercel.json` |
 | Add a sub-project at `<name>.outman.cc` | `scripts/new-project.sh <name> <dir>` (needs `.env` loaded), then add an entry to `projects.json` |
-| Share an HTML page with someone | `scripts/share.sh page.html` → `https://share.outman.cc/share/<id>`. Skill: `skills/share-page` |
+| Share an HTML page with someone | `skills/share-page/share.sh page.html` → `https://share.outman.cc/share/<id>`. Skill dir is self-contained: `share.sh`, `history.sh` (live + archived lookup), `RULE.md` |
 | Change the share worker | `share/worker.js` · run `node share/test.mjs` · push to `main` → `.github/workflows/share.yml` deploys |
 | Change share retention | `share/wrangler.toml` → `TTL_DAYS` (hard cap from creation, `0` = forever) |
 | Archive rules | `share/archive.mjs` (`MAX_DAYS` 30, `MAX_MB` 500, `KEEP_DAYS` 90) · `.github/workflows/archive.yml` (Mon 03:00 UTC) |
