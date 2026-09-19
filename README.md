@@ -26,7 +26,7 @@ Worker because it needs KV, not a build.
 | `scripts/share.sh` | `share.sh page.html` → prints the public link. |
 | `skills/share-page/` | Agent skill: publish pages to share.outman.cc instead of a third-party host. |
 | `.github/workflows/share.yml` | Deploys the worker on push to `share/**`. |
-| `share/archive.mjs` + `.github/workflows/archive.yml` | Weekly: pages older than 30 days (or the oldest once KV passes 500MB) are copied into the private `share-archive` repo, then deleted from KV. Archived files older than `KEEP_DAYS` (90) are pruned from the tree. Short-term stays in KV, long-term lives in git. |
+| `share/archive.mjs` + `.github/workflows/archive.yml` | Weekly: pages older than 30 days (or the oldest once KV passes 500MB) are copied into the private `share-archive` repo (pushed straight to its `main`, no PR), then deleted from KV. Archived files older than `KEEP_DAYS` (90) are pruned from the tree. Short-term stays in KV, long-term lives in git. |
 
 ## Bootstrap (once)
 
