@@ -21,7 +21,7 @@ Worker because it needs KV, not a build.
 | --- | --- |
 | `site/` | Static site. Content is `site/data/projects.json`; the page renders it with no external API calls. |
 | `site/vercel.json` | Redirects: `/setup`, `/gh`, `/share`. |
-| `share/` | Worker: `POST /share` → `{id,url}`, `GET /share/<id>`. Links expire after one idle day. `node share/test.mjs` is the check. |
+| `share/` | Worker: `POST /share` → `{id,url}`, `GET /share/<id>`. Retention = `TTL_DAYS` in wrangler.toml (default 90, idle-based, `0` = forever). With `SHARE_TOKEN`: `GET /share` lists everything (title, date, size), `DELETE /share/<id>` removes one. `node share/test.mjs` is the check. |
 | `scripts/new-project.sh` | New Vercel project + `<name>.outman.cc` + Cloudflare CNAME + deploy. |
 | `scripts/share.sh` | `share.sh page.html` → prints the public link. |
 | `skills/share-page/` | Agent skill: publish pages to share.outman.cc instead of a third-party host. |
@@ -56,6 +56,7 @@ ln -s "$PWD/skills/share-page" ~/.claude/skills/share-page
 ```bash
 scripts/new-project.sh myapp ~/code/myapp      # live at https://myapp.outman.cc, then add it to site/data/projects.json
 scripts/share.sh report.html                   # https://share.outman.cc/share/<id>
+curl -H "Authorization: Bearer $SHARE_TOKEN" https://share.outman.cc/share   # audit: everything still stored
 ```
 
 Edit `site/data/projects.json`, push, done.
@@ -76,5 +77,5 @@ public half.
   `projects.json`, or commit messages. Put them behind Cloudflare Access.
 - The site makes no calls to GitHub or any social API. Nothing here lists follower counts,
   repo counts, or social handles. Add links to `projects.json` only when you want them public.
-- Share links are unlisted (`noindex`, content-hash ids, one-day idle TTL). Treat a link as a
-  capability token.
+- Share links are unlisted (`noindex`, content-hash ids). Treat a link as a capability token; the
+  audit list and delete only answer to `SHARE_TOKEN`.

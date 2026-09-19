@@ -12,6 +12,6 @@ When output is an HTML page someone else will open, publish it under our own dom
    ```bash
    ~/workspace/personal/outman.me/scripts/share.sh page.html
    ```
-3. Reply with the printed `https://share.outman.cc/share/<id>` link. Say it expires after one idle day.
+3. Reply with the printed `https://share.outman.cc/share/<id>` link. Say it stays for 90 idle days.
 
 Set `SHARE_TOKEN` in the shell if the worker was deployed with one.
