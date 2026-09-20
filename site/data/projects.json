@@ -3,6 +3,13 @@
   "tagline": "event in, context out",
   "projects": [
     {
+      "name": "mario-arena",
+      "href": "https://github.com/lincleejun/mario-arena",
+      "pitch": "any model, script or human plays Super Mario Bros. from RAM state — players decide, the harness runs the game and keeps score",
+      "year": "2026",
+      "tier": 1
+    },
+    {
       "name": "share",
       "href": "https://share.outman.cc",
       "pitch": "POST an HTML page, get a public link — a transit desk for agent-generated reports",
