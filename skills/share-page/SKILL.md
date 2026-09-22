@@ -25,7 +25,9 @@ in `RULE.md`, which `install.sh` writes into the global `~/.claude/CLAUDE.md` be
 2. `./share publish page.html` (optional second arg sets the title).
 3. Reply with the printed `https://share.outman.cc/share/<id>` link. Say it expires 90 days after publishing.
 
-"no SHARE_TOKEN" means this machine is not set up: `~/.config/outman/env` needs `SHARE_TOKEN=…` (see `INSTALL.md` in the repo).
+Auth is the user's GitHub login: the CLI sends `gh auth token`, and the worker only accepts tokens of its
+`SHARE_OWNER`. "not logged in to GitHub" means run `gh auth login`; a 401 on publish means the gh account
+is not the owner named in `share/wrangler.toml`. There is no key to configure on the machine.
 
 ## History
 

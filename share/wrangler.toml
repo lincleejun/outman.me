@@ -15,4 +15,5 @@ binding = "SHARES"
 id = "24a536d7ffe64281acbc7758f8fd1337"
 
 [vars]
+SHARE_OWNER = "lincleejun"   # POST / list / delete need a GitHub token of this user (gh auth token, or a PAT in CI)
 TTL_DAYS = "90"   # hard cap: deleted 90 days after creation even if the archive job never runs; "0" = keep forever

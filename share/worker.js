@@ -10,7 +10,17 @@ const ttlOpts = (env) => {
   const days = Number(env.TTL_DAYS ?? 90);
   return days > 0 ? { expirationTtl: days * 86400 } : {};
 };
-const authed = (req, env) => env.SHARE_TOKEN && req.headers.get("authorization") === `Bearer ${env.SHARE_TOKEN}`;
+// Auth = GitHub identity: the bearer token must belong to SHARE_OWNER (a `gh auth token` or a PAT).
+// No shared secret anywhere: the client uses its gh login, CI uses the owner's PAT.
+const GH_TOKEN = /^(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})$/;
+async function authed(req, env) {
+  const t = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  if (!env.SHARE_OWNER || !GH_TOKEN.test(t)) return false;
+  const r = await fetch("https://api.github.com/user", {
+    headers: { authorization: `Bearer ${t}`, "user-agent": "outman-share", accept: "application/vnd.github+json" },
+  });
+  return r.ok && (await r.json()).login === env.SHARE_OWNER;
+}
 
 export default {
   async fetch(req, env) {
@@ -19,7 +29,7 @@ export default {
     if (!m) return env.ASSETS.fetch(req);
 
     if (req.method === "POST" && !m[1]) {
-      if (env.SHARE_TOKEN && !authed(req, env)) return new Response("unauthorized", { status: 401 });
+      if (!(await authed(req, env))) return new Response("unauthorized", { status: 401 });
       const body = await req.arrayBuffer();
       if (!body.byteLength || body.byteLength > MAX) return new Response("empty or >4MB", { status: 413 });
       const id = await hashId(body);
@@ -31,9 +41,9 @@ export default {
       return Response.json({ id, url: `${url.origin}/share/${id}` });
     }
 
-    // Audit list: only with a token. Newest first.
+    // Audit list: owner only. Newest first.
     if (req.method === "GET" && !m[1]) {
-      if (!authed(req, env)) return new Response("not found", { status: 404 });
+      if (!(await authed(req, env))) return new Response("not found", { status: 404 });
       const { keys } = await env.SHARES.list({ limit: 1000 });
       const items = keys
         .map((k) => ({ id: k.name, url: `${url.origin}/share/${k.name}`, ...k.metadata }))
@@ -50,7 +60,7 @@ export default {
     }
 
     if (req.method === "DELETE" && m[1]) {
-      if (!authed(req, env)) return new Response("not found", { status: 404 });
+      if (!(await authed(req, env))) return new Response("not found", { status: 404 });
       await env.SHARES.delete(m[1]);
       return new Response(null, { status: 204 });
     }

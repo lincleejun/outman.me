@@ -7,19 +7,21 @@
 #   share grep <pattern>                full-text search inside archived pages
 #   share sync                          clone/pull the archive to ~/.cache/outman/share-archive (others call it as needed)
 #
-# Config: ~/.config/outman/env with SHARE_TOKEN=… (install.sh writes it). Archive commands need `gh` logged in.
+# Auth: your GitHub login. `gh auth login` as the worker's owner (SHARE_OWNER in share/wrangler.toml); no keys on this machine.
 set -euo pipefail
-cfg="${XDG_CONFIG_HOME:-$HOME/.config}/outman/env"; [ -f "$cfg" ] && { set -a; . "$cfg"; set +a; }
 base=${SHARE_URL:-https://share.outman.cc}
 repo=${SHARE_ARCHIVE_REPO:-lincleejun/share-archive}
 cache="${XDG_CACHE_HOME:-$HOME/.cache}/outman/share-archive"
-auth=(-H "Authorization: Bearer ${SHARE_TOKEN:-}")
 cmd=${1:-help}; shift || true
 
-need_token() { [ -n "${SHARE_TOKEN:-}" ] || { echo "no SHARE_TOKEN: put SHARE_TOKEN=… in $cfg (or run install.sh from the outman.me repo)" >&2; exit 1; }; }
+need_gh() {
+  tok=$(gh auth token 2>/dev/null || true)
+  [ -n "$tok" ] || { echo "not logged in to GitHub: gh auth login  (as the account named SHARE_OWNER in share/wrangler.toml)" >&2; exit 1; }
+  auth=(-H "Authorization: Bearer $tok")
+}
 sync() { if [ -d "$cache/.git" ]; then git -C "$cache" pull -q --ff-only; else mkdir -p "$(dirname "$cache")"; gh repo clone "$repo" "$cache" -- -q; fi; }
 live() {
-  [ -n "${SHARE_TOKEN:-}" ] || return 0
+  need_gh
   curl -sf "${auth[@]}" "$base/share" | python3 -c '
 import json,sys
 for i in json.load(sys.stdin)["items"]: print("  ".join([i.get("at","")[:10], i["id"], i.get("title",""), "live", i["url"]]))'
@@ -34,7 +36,7 @@ for l in open(sys.argv[1]):
 
 case "$cmd" in
   publish)
-    need_token; file=${1:?usage: share publish <page.html> [title]}
+    need_gh; file=${1:?usage: share publish <page.html> [title]}
     q=""; [ -n "${2:-}" ] && q="?title=$(printf %s "$2" | sed 's/ /+/g')"
     curl -sf -X POST "$base/share$q" "${auth[@]}" --data-binary @"$file" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p' ;;
   list) sync 2>/dev/null || true; { live; archived; } | sort -r | grep -i -- "${1:-.}" || echo "(nothing matched)" ;;

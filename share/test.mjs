@@ -4,6 +4,7 @@ import worker from "./worker.js";
 
 const kv = new Map();
 const env = {
+  SHARE_OWNER: "owner",
   SHARES: {
     put: async (k, v, o = {}) => kv.set(k, { v, m: o.metadata }),
     get: async (k) => kv.get(k)?.v ?? null,
@@ -13,7 +14,20 @@ const env = {
   ASSETS: { fetch: async () => new Response("landing") },
 };
 const ctx = { waitUntil() {} };
-const post = (body, headers = {}, q = "") => new Request("https://share.test/share" + q, { method: "POST", body, headers });
+// fake api.github.com: one token belongs to the owner, one to someone else
+const OWNER_TOKEN = "gho_" + "a".repeat(36), OTHER_TOKEN = "ghp_" + "b".repeat(36);
+let ghCalls = 0;
+globalThis.fetch = async (url, init = {}) => {
+  assert.equal(String(url), "https://api.github.com/user");
+  assert.ok(init.headers["user-agent"], "GitHub rejects requests without a User-Agent");
+  ghCalls++;
+  const t = init.headers.authorization.replace("Bearer ", "");
+  if (t === OWNER_TOKEN) return Response.json({ login: "owner" });
+  if (t === OTHER_TOKEN) return Response.json({ login: "other" });
+  return new Response("bad credentials", { status: 401 });
+};
+const auth = { authorization: `Bearer ${OWNER_TOKEN}` };
+const post = (body, headers = auth, q = "") => new Request("https://share.test/share" + q, { method: "POST", body, headers });
 
 const html = "<html><head><title>Q3 report</title></head><h1>hi</h1></html>";
 const { id, url } = await (await worker.fetch(post(html), env, ctx)).json();
@@ -23,17 +37,24 @@ assert.equal(await (await worker.fetch(new Request(url), env, ctx)).text(), html
 assert.equal((await worker.fetch(new Request("https://share.test/share/0000000000000000"), env, ctx)).status, 410);
 assert.equal((await worker.fetch(post(""), env, ctx)).status, 413);
 assert.equal(await (await worker.fetch(new Request("https://share.test/"), env, ctx)).text(), "landing");
-// list/delete are hidden without a token
-assert.equal((await worker.fetch(new Request("https://share.test/share"), env, ctx)).status, 404);
 
-const locked = { ...env, SHARE_TOKEN: "s3cret" };
-const auth = { authorization: "Bearer s3cret" };
-assert.equal((await worker.fetch(post(html), locked, ctx)).status, 401);
-assert.equal((await worker.fetch(post("<p>x</p>", auth, "?title=custom"), locked, ctx)).status, 200);
-const list = await (await worker.fetch(new Request("https://share.test/share", { headers: auth }), locked, ctx)).json();
+// not the owner: no token, garbage (never forwarded to GitHub), someone else's token, no SHARE_OWNER configured
+const before = ghCalls;
+assert.equal((await worker.fetch(post(html, {}), env, ctx)).status, 401);
+assert.equal((await worker.fetch(post(html, { authorization: "Bearer not-a-github-token" }), env, ctx)).status, 401);
+assert.equal(ghCalls, before, "malformed tokens must not reach GitHub");
+assert.equal((await worker.fetch(post(html, { authorization: `Bearer ${OTHER_TOKEN}` }), env, ctx)).status, 401);
+assert.equal((await worker.fetch(post(html), { ...env, SHARE_OWNER: "" }, ctx)).status, 401);
+// list/delete are hidden from anyone but the owner
+assert.equal((await worker.fetch(new Request("https://share.test/share"), env, ctx)).status, 404);
+assert.equal((await worker.fetch(new Request(url, { method: "DELETE", headers: { authorization: `Bearer ${OTHER_TOKEN}` } }), env, ctx)).status, 404);
+assert.equal(await (await worker.fetch(new Request(url), env, ctx)).text(), html, "a stranger's DELETE must not remove the page");
+
+assert.equal((await worker.fetch(post("<p>x</p>", auth, "?title=custom"), env, ctx)).status, 200);
+const list = await (await worker.fetch(new Request("https://share.test/share", { headers: auth }), env, ctx)).json();
 assert.equal(list.count, 2);
 assert.ok(list.items.some((i) => i.title === "custom"));
-assert.equal((await worker.fetch(new Request(url, { method: "DELETE", headers: auth }), locked, ctx)).status, 204);
+assert.equal((await worker.fetch(new Request(url, { method: "DELETE", headers: auth }), env, ctx)).status, 204);
 assert.equal((await worker.fetch(new Request(url), env, ctx)).status, 410);
 console.log("ok");
 

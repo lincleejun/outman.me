@@ -1,7 +1,7 @@
 // Archive share pages to disk, then delete them from KV.
 // Rule: anything older than MAX_DAYS, plus the oldest until the rest fits in MAX_MB.
 // Then prune archived files older than KEEP_DAYS from the archive tree (git history still has them).
-// usage: SHARE_TOKEN=… node share/archive.mjs [dir=./archive]
+// usage: GH_TOKEN=$(gh auth token) node share/archive.mjs [dir=./archive]   (a GitHub token of the worker's SHARE_OWNER)
 import { mkdir, writeFile, appendFile, access, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -17,7 +17,7 @@ export function select(items, { maxDays = 30, maxMB = 500, now = Date.now() } = 
 
 async function main(dir = process.argv[2] || "./archive") {
   const base = process.env.SHARE_URL || "https://share.outman.cc";
-  const headers = { authorization: `Bearer ${process.env.SHARE_TOKEN}` };
+  const headers = { authorization: `Bearer ${process.env.GH_TOKEN}` };
   const { items } = await (await fetch(`${base}/share`, { headers })).json();
   const picked = select(items, { maxDays: num(process.env.MAX_DAYS, 30), maxMB: num(process.env.MAX_MB, 500) });
   for (const it of picked) {

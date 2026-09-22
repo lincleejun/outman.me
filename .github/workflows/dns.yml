@@ -1,0 +1,22 @@
+name: dns record
+# Create <name>.outman.cc → CNAME with the repo's Cloudflare secrets, so no machine needs them.
+# Run: gh workflow run dns.yml -f name=myapp   (scripts/new-project.sh does this)
+on:
+  workflow_dispatch:
+    inputs:
+      name: { description: "subdomain: myapp → myapp.outman.cc", required: true }
+      target: { description: "CNAME target", default: "cname.vercel-dns.com" }
+jobs:
+  cname:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records" \
+            -H "Authorization: Bearer $CF_API_TOKEN" -H "Content-Type: application/json" \
+            --data "{\"type\":\"CNAME\",\"name\":\"$NAME.outman.cc\",\"content\":\"$TARGET\",\"proxied\":false,\"comment\":\"vercel:$NAME\"}" \
+            | tee /dev/stderr | grep -q '"success":true' && echo "dns: $NAME.outman.cc -> $TARGET"
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          NAME: ${{ inputs.name }}
+          TARGET: ${{ inputs.target }}

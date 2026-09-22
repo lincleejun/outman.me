@@ -1,22 +1,21 @@
 #!/usr/bin/env bash
-# Add a sub-project: Vercel project + <name>.outman.cc + Cloudflare CNAME + first deploy.
+# Add a sub-project: Vercel project + <name>.outman.cc + Cloudflare CNAME (created by GitHub, no keys here) + first deploy.
 # usage: scripts/new-project.sh <name> [project-dir=.]
-# needs: CF_API_TOKEN, CF_ZONE_ID (see .env.example); `bunx vercel login` done once.
+# needs: `bunx vercel login` once; `gh auth login` (the CNAME is made by .github/workflows/dns.yml with the repo's secrets).
 set -euo pipefail
 name=${1:?usage: new-project.sh <name> [dir]}
 dir=${2:-.}
 host="$name.outman.cc"
-: "${CF_API_TOKEN:?}" "${CF_ZONE_ID:?}"
+repo=lincleejun/outman.me
 
 cd "$dir"
 bunx vercel project add "$name" 2>/dev/null || true
 bunx vercel link --yes --project "$name"
 bunx vercel domains add "$host" "$name" || true
 
-curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records" \
-  -H "Authorization: Bearer $CF_API_TOKEN" -H "Content-Type: application/json" \
-  --data "{\"type\":\"CNAME\",\"name\":\"$host\",\"content\":\"cname.vercel-dns.com\",\"proxied\":false,\"comment\":\"vercel:$name\"}" \
-  >/dev/null && echo "dns: $host -> cname.vercel-dns.com" || echo "dns: record exists or failed (check dashboard)"
+gh workflow run dns.yml --repo "$repo" -f "name=$name" \
+  && echo "dns: $host -> cname.vercel-dns.com requested  (gh run list --repo $repo --workflow dns.yml)" \
+  || echo "dns: could not start dns.yml — gh auth login, or add the record in the Cloudflare dashboard"
 
 bunx vercel deploy --prod --yes
-echo "live: https://$host"
+echo "live: https://$host  (DNS lands within a minute)"

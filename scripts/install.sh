@@ -35,10 +35,5 @@ print(f"hook: {cmd} registered in ~/.claude/settings.json (restart Claude Code t
 PY
 done
 
-# 4. per-user config for the skills (token only; infra secrets stay in the repo .env)
-cfg="${XDG_CONFIG_HOME:-$HOME/.config}/outman/env"; mkdir -p "$(dirname "$cfg")"
-if [ -f .env ] && grep -q '^SHARE_TOKEN=.' .env; then grep '^SHARE_TOKEN=' .env > "$cfg"; chmod 600 "$cfg"; echo "config: $cfg written from .env"
-elif [ ! -f "$cfg" ]; then echo 'SHARE_TOKEN=' > "$cfg"; chmod 600 "$cfg"; echo "config: $cfg created — fill SHARE_TOKEN"; fi
-
-[ -f .env ] || { cp .env.example .env; echo ".env created from example — only needed on machines that run infra scripts"; }
+# No keys on this machine: the skills authenticate with your gh login, the infra secrets live in GitHub Actions.
 echo; echo "verify: scripts/doctor.sh"

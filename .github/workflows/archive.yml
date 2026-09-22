@@ -18,7 +18,7 @@ jobs:
           path: archive
       - run: node share/archive.mjs archive
         env:
-          SHARE_TOKEN: ${{ secrets.SHARE_TOKEN }}
+          GH_TOKEN: ${{ secrets.ARCHIVE_TOKEN }}   # the owner's PAT doubles as the share API credential
           MAX_DAYS: ${{ inputs.max_days || '30' }}
           MAX_MB: ${{ inputs.max_mb || '500' }}
           KEEP_DAYS: ${{ inputs.keep_days || '90' }}
