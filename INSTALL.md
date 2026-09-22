@@ -7,7 +7,7 @@ Two situations. Pick one.
 ```bash
 git clone https://github.com/lincleejun/outman.me ~/workspace/personal/outman.me
 cd ~/workspace/personal/outman.me
-scripts/install.sh        # copies skills to ~/.claude/skills, writes the rule block into ~/.claude/CLAUDE.md, seeds ~/.config/outman/env
+scripts/install.sh        # copies skills to ~/.claude/skills, writes the rule blocks into ~/.claude/CLAUDE.md, registers skill hooks in ~/.claude/settings.json, seeds ~/.config/outman/env
 $EDITOR .env              # fill from the Secrets table below
 scripts/doctor.sh         # everything should be ok
 ```

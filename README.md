@@ -64,6 +64,7 @@ scripts/install.sh
 scripts/new-project.sh myapp ~/code/myapp      # live at https://myapp.outman.cc, then add it to site/data/projects.json
 ~/.claude/skills/share-page/share publish report.html   # https://share.outman.cc/share/<id>  (installed copy)
 ~/.claude/skills/share-page/share list                  # everything shared, live + archived
+~/.claude/skills/fetch-page/fetch https://…            # full page text as markdown (agents use this instead of WebFetch)
 curl -H "Authorization: Bearer $SHARE_TOKEN" https://share.outman.cc/share   # audit: everything still stored
 ```
 

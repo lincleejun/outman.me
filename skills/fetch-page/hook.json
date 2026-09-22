@@ -1,0 +1,11 @@
+{
+  "matcher": "WebFetch",
+  "hooks": [
+    {
+      "type": "command",
+      "command": "$HOME/.claude/skills/fetch-page/guard.sh",
+      "timeout": 5,
+      "statusMessage": "fetch-page-guard"
+    }
+  ]
+}

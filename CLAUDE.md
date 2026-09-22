@@ -10,6 +10,7 @@ This repo is the infra for **outman.cc**. Read this first; `README.md` has the h
 | Add a redirect on outman.cc | `site/vercel.json` |
 | Add a sub-project at `<name>.outman.cc` | `scripts/new-project.sh <name> <dir>` (needs `.env` loaded), then add an entry to `projects.json` |
 | Share an HTML page with someone | `skills/share-page/share publish page.html` → `https://share.outman.cc/share/<id>`. Skill dir is the source of truth; machines run `scripts/install.sh` to get a copy. one CLI `share publish|list|get|grep|sync`, `RULE.md` |
+| Read a web page's full text (never WebFetch, it summarises) | `skills/fetch-page/fetch <url>` → markdown on stdout, html+md kept in `~/.cache/outman/fetch/`. `--all` for whole body. `guard.sh` + `hook.json` block WebFetch (PreToolUse); `install.sh` registers it. |
 | Change the share worker | `share/worker.js` · run `node share/test.mjs` · push to `main` → `.github/workflows/share.yml` deploys |
 | Change share retention | `share/wrangler.toml` → `TTL_DAYS` (hard cap from creation, `0` = forever) |
 | Archive rules | `share/archive.mjs` (`MAX_DAYS` 30, `MAX_MB` 500, `KEEP_DAYS` 90) · `.github/workflows/archive.yml` (Mon 03:00 UTC) |

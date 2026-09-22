@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# fetch — pull a web page's FULL text as markdown. No summarising model in between.
+#
+#   fetch <url>            main content (article/main) → markdown on stdout; html+md kept in ~/.cache/outman/fetch/
+#   fetch <url> --all      whole <body> instead of main-content extraction (use when something looks cut off)
+#   fetch <url> --html     print the raw html, nothing else
+#
+# Why: the built-in WebFetch tool has a small model rewrite the page before the agent sees it, and details
+# get lost. This is curl + pandoc (extract.py fallback), so what you read is what the page says.
+# JS-rendered pages come back near-empty; the script says so and points to the agent-browser skill.
+set -euo pipefail
+url=${1:?usage: fetch <url> [--all|--html]}; mode=${2:-main}
+here=$(cd "$(dirname "$0")" && pwd)
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/outman/fetch"; mkdir -p "$cache"
+slug=$(printf %s "$url" | sed -E 's#^https?://##; s#[^A-Za-z0-9._-]+#_#g; s#_+$##' | cut -c1-80)
+stem="$cache/$(date +%Y%m%d-%H%M%S)-$slug"
+ua='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+
+meta=$(curl -sSL --compressed --max-time 40 -A "$ua" -H 'Accept: text/html,application/xhtml+xml,*/*;q=0.8' \
+       -o "$stem.html" -w '%{http_code}\t%{content_type}\t%{url_effective}' "$url") || { echo "fetch: curl failed for $url" >&2; exit 1; }
+code=${meta%%$'\t'*}; rest=${meta#*$'\t'}; ctype=${rest%%$'\t'*}; final=${rest#*$'\t'}
+[ "$code" = 200 ] || echo "fetch: HTTP $code from $final" >&2
+[ "$mode" = --html ] && { cat "$stem.html"; exit 0; }
+
+case "$ctype" in
+  *html*|*xml*) ;;
+  *pdf*) mv "$stem.html" "$stem.pdf"; echo "fetch: got a PDF, saved to $stem.pdf — open it with the Read tool" >&2; echo "$stem.pdf"; exit 0 ;;
+  *) cat "$stem.html"; echo "fetch: non-html ($ctype), printed as-is" >&2; exit 0 ;;
+esac
+
+# 1. pick main content, drop page chrome.  2. html → markdown (pandoc, else extract.py).
+if command -v pandoc >/dev/null; then
+  md=$(python3 "$here/extract.py" pick "$stem.html" "$mode" | pandoc -f html -t gfm-raw_html --wrap=none)
+else
+  md=$(python3 "$here/extract.py" pick "$stem.html" "$mode" | python3 "$here/extract.py" md)
+fi
+# trailing spaces, empty self-anchor links ([](#x)) that heading permalinks leave behind, runs of blank lines
+md=$(printf '%s\n' "$md" | sed -E 's/[[:space:]]+$//; /^\[\]\(#[^)]*\)$/d' | cat -s)
+printf '%s\n' "$md" > "$stem.md"
+
+chars=$(printf '%s' "$md" | wc -c | tr -d ' '); bytes=$(wc -c < "$stem.html" | tr -d ' ')
+{ echo "fetch: $final → $stem.md ($chars chars from $bytes bytes html)"
+  if [ "$chars" -lt 600 ]; then
+    echo "fetch: WARNING only $chars chars of text (HTTP $code). Either the page is short, or it is JS-rendered / bot-blocked: retry with --all, else load it with the agent-browser skill."
+  fi
+} >&2
+printf '%s\n' "$md"

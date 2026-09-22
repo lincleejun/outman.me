@@ -21,7 +21,21 @@ open(p,'w').write(new); print(f"rule: {sys.argv[2]} {'updated' if n else 'added'
 PY
 done
 
-# 3. per-user config for the skills (token only; infra secrets stay in the repo .env)
+# 3. hooks → ~/.claude/settings.json: any skills/*/hook.json is a PreToolUse entry, added once (matched by its command)
+for h in skills/*/hook.json; do
+  [ -f "$h" ] || continue
+  python3 - "$h" <<'PY'
+import json,os,sys
+entry=json.load(open(sys.argv[1])); cmd=entry['hooks'][0]['command']
+p=os.path.expanduser('~/.claude/settings.json'); s=json.load(open(p)) if os.path.exists(p) else {}
+pre=s.setdefault('hooks',{}).setdefault('PreToolUse',[])
+if any(h.get('command')==cmd for e in pre for h in e.get('hooks',[])): print(f"hook: {cmd} already registered"); sys.exit()
+pre.append(entry); json.dump(s,open(p,'w'),indent=2,ensure_ascii=False); open(p,'a').write('\n')
+print(f"hook: {cmd} registered in ~/.claude/settings.json (restart Claude Code to load it)")
+PY
+done
+
+# 4. per-user config for the skills (token only; infra secrets stay in the repo .env)
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/outman/env"; mkdir -p "$(dirname "$cfg")"
 if [ -f .env ] && grep -q '^SHARE_TOKEN=.' .env; then grep '^SHARE_TOKEN=' .env > "$cfg"; chmod 600 "$cfg"; echo "config: $cfg written from .env"
 elif [ ! -f "$cfg" ]; then echo 'SHARE_TOKEN=' > "$cfg"; chmod 600 "$cfg"; echo "config: $cfg created — fill SHARE_TOKEN"; fi

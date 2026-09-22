@@ -57,8 +57,11 @@ if [ -z "${CI:-}" ]; then
   echo "local cli"
   check "vercel logged in" "bunx vercel whoami" "bunx vercel login"
   check "wrangler logged in" "bunx wrangler whoami | grep -qi 'logged in'" "cd share && bunx wrangler login"
-  check "share-page skill installed & current" "diff -rq skills/share-page ~/.claude/skills/share-page" "scripts/install.sh  (installed copy differs from repo)"
-  check "global rule current" "python3 -c \"import os,re;s=open(os.path.expanduser('~/.claude/CLAUDE.md')).read();r=open('skills/share-page/RULE.md').read().strip();assert r in s\"" "scripts/install.sh  (rule block in ~/.claude/CLAUDE.md is stale)"
+  for d in skills/*/; do n=$(basename "$d")
+    check "$n skill installed & current" "diff -rq skills/$n ~/.claude/skills/$n" "scripts/install.sh  (installed copy differs from repo)"
+    check "$n global rule current" "python3 -c \"import os,re;s=open(os.path.expanduser('~/.claude/CLAUDE.md')).read();r=open('skills/$n/RULE.md').read().strip();assert r in s\"" "scripts/install.sh  (rule block in ~/.claude/CLAUDE.md is stale)"
+    [ -f "skills/$n/hook.json" ] && check "$n hook registered" "grep -q 'skills/$n/guard.sh' ~/.claude/settings.json" "scripts/install.sh  (adds the PreToolUse hook to ~/.claude/settings.json)"
+  done
   check "~/.config/outman/env has SHARE_TOKEN" "grep -q '^SHARE_TOKEN=.' \"\${XDG_CONFIG_HOME:-\$HOME/.config}/outman/env\"" "scripts/install.sh  (seeds it from .env)"
 fi
 echo
