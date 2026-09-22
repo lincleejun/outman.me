@@ -15,6 +15,13 @@
       "pitch": "POST an HTML page, get a public link — a transit desk for agent-generated reports",
       "year": "2026",
       "tier": 1
+    },
+    {
+      "name": "birding",
+      "href": "/birding/",
+      "pitch": "湾区鸟讯，每小时更新；按时间阅读社区消息与原始来源",
+      "year": "2026",
+      "tier": 1
     }
   ]
 }

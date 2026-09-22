@@ -1,8 +1,45 @@
 {
   "redirects": [
-    { "source": "/setup", "destination": "https://raw.githubusercontent.com/lincleejun/infra/main/setup.sh", "permanent": false },
-    { "source": "/gh", "destination": "https://github.com/lincleejun/outman.me", "permanent": false },
-    { "source": "/share", "destination": "https://share.outman.cc", "permanent": false }
+    {
+      "source": "/setup",
+      "destination": "https://raw.githubusercontent.com/lincleejun/infra/main/setup.sh",
+      "permanent": false
+    },
+    {
+      "source": "/gh",
+      "destination": "https://github.com/lincleejun/outman.me",
+      "permanent": false
+    },
+    {
+      "source": "/share",
+      "destination": "https://share.outman.cc",
+      "permanent": false
+    }
   ],
-  "headers": [{ "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }]
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/birding/feed.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/birding/feed.json",
+      "destination": "https://lincleejun.github.io/birding/feed.json"
+    }
+  ]
 }

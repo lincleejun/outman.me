@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>湾区鸟讯 · outman</title>
+  <meta name="description" content="来自湾区观鸟社区的最新鸟讯，按时间排列，每小时检查更新。">
+  <link rel="canonical" href="https://outman.cc/birding/">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main>
+    <nav><a href="/">outman</a><span>FIELD NOTES / BAY AREA</span></nav>
+    <header>
+      <p class="eyebrow">来自观鸟社区的消息</p>
+      <h1>湾区鸟讯<span aria-hidden="true">↗</span></h1>
+      <p class="intro">看看附近又有什么鸟。最新消息在前，往下滚动，继续读更早的记录。</p>
+      <div class="health"><span id="indicator" class="dot"></span><span id="health" role="status">正在读取鸟讯…</span></div>
+      <p id="updated" class="muted small"></p>
+    </header>
+    <section class="toolbar" aria-label="筛选鸟讯">
+      <label class="search"><span class="sr-only">搜索标题或社区</span><input id="search" type="search" placeholder="搜索鸟名、地点、社区…" autocomplete="off" disabled></label>
+      <label><span class="sr-only">选择区域</span><select id="area" disabled><option value="">全部区域</option><option>South Bay</option><option>Peninsula</option><option>San Francisco</option><option>East Bay</option><option>North Bay</option></select></label>
+    </section>
+    <div class="feed-heading"><h2>消息时间线</h2><span id="count" aria-live="polite">—</span></div>
+    <p class="small muted">按来源收到消息的时间排列；不代表实际观测时间。</p>
+    <div id="feed" aria-label="鸟讯列表"></div>
+    <p id="empty" hidden>没有匹配的消息。试试其他关键词或区域。</p>
+    <div id="sentinel"><button id="more" hidden>加载更早的消息</button><p id="end" class="small muted"></p></div>
+    <aside>
+      <h2>关于这份鸟讯</h2>
+      <p>每小时检查 Sialia 收录的 5 个湾区邮件列表，保留最近 30 天。这里展示标题与原帖链接，回复单独标注；消息数量不等于独立观察者人数，鸟种与地点请到原帖确认。</p>
+      <p>eBird 多人观测尚未接入。可直接查看 <a href="https://ebird.org/alert/summary?sid=SN36076" target="_blank" rel="noopener noreferrer">eBird 提醒页 ↗</a>（可能需要登录）。</p>
+      <p>消息时间沿用 Sialia 的显示值，来源未注明时区。列表区域仅用于筛选社区，不是观测地点的地理判断。</p>
+      <p><a href="https://github.com/lincleejun/birding">项目与采集记录 ↗</a> <span aria-hidden="true"> / </span> <a href="feed.json">JSON 数据 ↗</a></p>
+    </aside>
+    <footer>outman · event in, context out.</footer>
+    <noscript><p>请启用 JavaScript 阅读鸟讯，或打开上面的 JSON 数据链接。</p></noscript>
+  </main>
+</body>
+</html>

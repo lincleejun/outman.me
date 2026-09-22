@@ -87,3 +87,11 @@ public half.
   repo counts, or social handles. Add links to `projects.json` only when you want them public.
 - Share links are unlisted (`noindex`, content-hash ids). Treat a link as a capability token; the
   audit list and delete only answer to `SHARE_TOKEN`.
+
+## Birding feed
+
+`site/birding/` serves [湾区鸟讯](https://outman.cc/birding/): newest-first community reports with automatic scrolling, search and area filters. The homepage links to it.
+
+The separate [birding repository](https://github.com/lincleejun/birding) collects hourly and commits `data/feed.json`. Vercel rewrites `/birding/feed.json` to the static GitHub Pages JSON; the site does not call GitHub APIs or carry credentials. Source failure and stale data are visible in the page. eBird observation ingestion is not enabled yet.
+
+Verify after deployment: `node scripts/check-birding.mjs` (or supply a local origin). This checks routing, JSON schema, deduplication, ordering and source freshness. The existing Vercel integration deploys pushes to `main`; revert the birding commit and push to roll it back.
