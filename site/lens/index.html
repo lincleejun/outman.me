@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lens Lab · outman</title>
+<meta name="description" content="把一支 Leica Summilux-M 35mm f/1.4 Aspherical（AA）按专利处方拆开，在浏览器里逐条追迹光线，看它怎样对焦、成像。">
+<link rel="canonical" href="https://outman.cc/lens/">
+<style>
+  :root { color-scheme: light dark; --fg: #1a1a1a; --bg: #fafaf7; --mut: #6b6b6b; --line: rgba(127,127,127,.25); --acc: #c2410c; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #ececec; --bg: #111; --mut: #9a9a9a; --acc: #fb923c; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.75 -apple-system, "PingFang SC", system-ui, sans-serif; }
+  main { max-width: 720px; margin: 8vh auto; padding: 0 16px; }
+  nav { font: 13px ui-monospace, Menlo, monospace; color: var(--mut); display: flex; justify-content: space-between; margin-bottom: 40px; }
+  nav a, a { color: var(--acc); }
+  h1 { font-size: 30px; line-height: 1.25; margin: 0 0 8px; }
+  h2 { font: 12px ui-monospace, Menlo, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--mut); margin: 44px 0 10px; }
+  .lede { color: var(--mut); margin: 0 0 24px; }
+  .go { display: inline-block; font: 600 15px ui-monospace, Menlo, monospace; padding: 10px 16px; border: 1px solid var(--acc); border-radius: 8px; text-decoration: none; }
+  .go:hover { background: var(--acc); color: var(--bg); }
+  figure { margin: 24px 0; }
+  img { max-width: 100%; display: block; border-radius: 8px; border: 1px solid var(--line); }
+  figcaption { font-size: 13px; color: var(--mut); margin-top: 6px; }
+  ul { padding-left: 20px; } li { margin: 4px 0; }
+  code { font: 14px ui-monospace, Menlo, monospace; }
+  .table { overflow-x: auto; }
+  table { border-collapse: collapse; font: 13px ui-monospace, Menlo, monospace; width: 100%; }
+  th, td { padding: 6px 8px; border-top: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { color: var(--mut); font-weight: 400; }
+  .muted { color: var(--mut); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="/">outman</a><span>LENS LAB / 2026</span></nav>
+  <h1>把一支 Summilux 35 AA 拆开，看光怎么走</h1>
+  <p class="lede">Leica Summilux-M 35mm f/1.4 Aspherical，1990 年代只做了几千支的“双非球面 AA”。这里按它的专利处方，在浏览器里一条条追迹光线：转对焦环、收光圈、换镜头，看焦平面扫过场景，看每一片玻璃把光往哪里折。</p>
+  <a class="go" href="https://lens.outman.cc">打开光学台 →</a>
+
+  <figure><img src="overview.jpg" alt="光学台全景：镜头前是叶子、星标和城市的布景，光线从物体出发穿过镜头落到 M6 胶片上" loading="lazy">
+    <figcaption>全景。镜头前挂着 0.8 m 的叶子、2 m 的星标和 15 m 的城市；距离按对数压缩，角度是真的。青色的片是焦平面。</figcaption></figure>
+
+  <h2>起点</h2>
+  <p>Ryan Sael 做过一个很漂亮的 <a href="https://lens.lab.sael.net">The Plane of Focus</a>。读了源码会发现，里面的镜片是道具：成像只用了一条薄透镜公式，光线是按公式画出来的。换一支镜头，结果不会变。</p>
+  <p>我想要的是下一层：每换一支镜头，用它真实的光学结构去算。</p>
+
+  <h2>数据从哪来</h2>
+  <p>厂商只公开焦距、光圈、片组数和结构图，没有曲率半径、间隔和玻璃折射率，没法追迹。完整处方写在专利的数值实施例里。</p>
+  <ul>
+    <li><a href="https://www.photonstophotos.net/GeneralTopics/Lenses/OpticalBench/OpticalBenchHub.htm">PhotonsToPhotos Optical Bench Hub</a> 把量产镜头对到专利：Summilux-M 35 Asph v1 对应 <b>US 5,161,060 例 1</b>（Walter Watz / Leica）。</li>
+    <li>专利给出 15 个面的半径、间隔、n<sub>e</sub>、ν<sub>e</sub>，以及第 4、13 面的非球面系数。9 片 5 组。</li>
+    <li>对比用的第二支是 1934 年的 Zeiss Sonnar f/1.5，处方来自 <a href="https://github.com/nzhagen/LensLibrary">nzhagen/LensLibrary</a>。</li>
+  </ul>
+
+  <h2>怎么算</h2>
+  <p>每条光线从物点出发，逐面求它和球面或非球面的交点，再用斯涅尔定律算折射方向；被镜片边缘或光圈叶片挡住就停下。对焦是整组镜片前移（M 口螺旋，没有浮动组），外移量按近轴像落回无穷远像位求解。</p>
+  <p>有一个坑：Leica 专利的非球面公式 <code>p(s) = Σ K(n)(s²/2)ⁿ</code> 里，s 是镜面点到顶点的<b>弦长</b>，不是离光轴的高度。按高度算，f/1.4 轴上光斑有 294 µm；改成弦长后是 12 µm，和专利写的“小于 20 µm”一致。</p>
+
+  <h2>和专利对一下</h2>
+  <div class="table"><table>
+    <tr><th>项目</th><th>追迹</th><th>专利 / Zemax</th></tr>
+    <tr><td>焦距</td><td>35.41 mm</td><td>35 mm</td></tr>
+    <tr><td>像高 12 mm 处畸变</td><td>−0.98%</td><td>−0.871%</td></tr>
+    <tr><td>像高 21 mm 处畸变</td><td>−1.10%</td><td>−1.061%</td></tr>
+    <tr><td>0.7 m 放大率</td><td>1:17.4</td><td>1:17.5</td></tr>
+    <tr><td>f/1.4 轴上光斑 rms</td><td>12 µm</td><td>&lt; 20 µm</td></tr>
+    <tr><td>G1 到 G4 光焦度</td><td>+ − + +</td><td>+ − + +</td></tr>
+    <tr><td>Sonnar 焦距 / 后焦</td><td>92.550 / 34.751</td><td>92.550 / 34.751</td></tr>
+  </table></div>
+  <p class="muted">唯一对不上的是 G5：专利说它是负的，近轴算出来几乎没有光焦度（f ≈ +909 mm），页面上如实标成“校正像差”。</p>
+
+  <h2>能看到什么</h2>
+  <figure><img src="ray.jpg" alt="选中一条光线，底部表格逐面列出高度、角度和会聚或发散" loading="lazy">
+    <figcaption>点一条光线：它变成白色，每一面画出法线，表格写明这一面让它向光轴折（会聚）还是离光轴折（发散）。</figcaption></figure>
+  <ul>
+    <li><b>焦平面</b>：只有落在焦平面上的物体，光锥才会在胶片上收成一点。</li>
+    <li><b>光圈</b>：3D 叶片和正视小图；收光圈时，外圈光线变红，停在叶片上。光阑在 G2 与 G3 之间，镜头中部。</li>
+    <li><b>波前</b>：按真实光程画的等相位线。光在玻璃里慢了约 1.8 倍，所以波前被掰弯，出镜后收向像点。</li>
+    <li><b>镜片着色</b>：蓝色会聚，粉色发散，非球面描橙边。</li>
+    <li><b>成片与光斑图</b>：模糊和散景都来自追迹出来的光斑，街灯的散景是逐盏盖印的真实光斑形状。</li>
+    <li><b>Leica M6 机身</b>：胶片在卡口后 27.8 mm，可以剖开看像倒着落在胶片上。</li>
+  </ul>
+  <figure><img src="spread.jpg" alt="镜片间距放大后的镜头剖面，五组镜片之间空出距离" loading="lazy">
+    <figcaption>镜片间距放大：只拉开空气间隔，镜片厚度和光线在每一面的高度都不变，方便看清每组之间的光路。</figcaption></figure>
+
+  <h2>没做的</h2>
+  <ul class="muted">
+    <li>玻璃色散用阿贝数近似，没有用厂商的 Sellmeier 系数。</li>
+    <li>专利没给镜片口径，按专利附图比例估算，所以边角暗角和猫眼形状是近似的。</li>
+    <li>光圈叶片数是示意；没有模拟镜片间的鬼影和杂光。</li>
+  </ul>
+  <p class="muted">源码在 <a href="https://github.com/lincleejun/outman.me/tree/main/toy/lens-lab">toy/lens-lab</a>，单个 HTML 文件，<code>node test.mjs</code> 会把追迹结果和专利数字逐项核对。</p>
+</main>
+</body>
+</html>

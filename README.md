@@ -94,3 +94,7 @@ public half.
 The separate [birding repository](https://github.com/lincleejun/birding) collects hourly and commits `data/feed.json`. Vercel rewrites `/birding/feed.json` to the static GitHub Pages JSON; the site does not call GitHub APIs or carry credentials. Source failure and stale data are visible in the page. eBird observation ingestion is not enabled yet.
 
 Verify after deployment: `node scripts/check-birding.mjs` (or supply a local origin). This checks routing, JSON schema, deduplication, ordering and source freshness. The existing Vercel integration deploys pushes to `main`; revert the birding commit and push to roll it back.
+
+## Lens lab
+
+`toy/lens-lab/` is a single-file optical bench: a Leica Summilux-M 35mm f/1.4 Aspherical (US 5,161,060) traced ray by ray in the browser. It is its own Vercel project at [lens.outman.cc](https://lens.outman.cc) (created with `scripts/new-project.sh lens toy/lens-lab`); redeploy with `cd toy/lens-lab && bunx vercel deploy --prod --yes`. [outman.cc/lens/](https://outman.cc/lens/) is the write-up. `node toy/lens-lab/test.mjs` checks the tracer against the patent's numbers.
