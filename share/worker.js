@@ -13,13 +13,16 @@ const ttlOpts = (env) => {
 // Auth = GitHub identity: the bearer token must belong to SHARE_OWNER (a `gh auth token` or a PAT).
 // No shared secret anywhere: the client uses its gh login, CI uses the owner's PAT.
 const GH_TOKEN = /^(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})$/;
-async function authed(req, env) {
+// Returns "" when the token belongs to SHARE_OWNER, else a short reason safe to show to the caller (never the token).
+async function authFail(req, env) {
   const t = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (!env.SHARE_OWNER || !GH_TOKEN.test(t)) return false;
+  if (!env.SHARE_OWNER) return "no SHARE_OWNER";
+  if (!GH_TOKEN.test(t)) return "token format";
   const r = await fetch("https://api.github.com/user", {
     headers: { authorization: `Bearer ${t}`, "user-agent": "outman-share", accept: "application/vnd.github+json" },
   });
-  return r.ok && (await r.json()).login === env.SHARE_OWNER;
+  if (!r.ok) return `github ${r.status}`;
+  return (await r.json()).login === env.SHARE_OWNER ? "" : "not owner";
 }
 
 export default {
@@ -29,7 +32,8 @@ export default {
     if (!m) return env.ASSETS.fetch(req);
 
     if (req.method === "POST" && !m[1]) {
-      if (!(await authed(req, env))) return new Response("unauthorized", { status: 401 });
+      const why = await authFail(req, env);
+      if (why) return new Response(`unauthorized: ${why}`, { status: 401 });
       const body = await req.arrayBuffer();
       if (!body.byteLength || body.byteLength > MAX) return new Response("empty or >4MB", { status: 413 });
       const id = await hashId(body);
@@ -43,7 +47,7 @@ export default {
 
     // Audit list: owner only. Newest first.
     if (req.method === "GET" && !m[1]) {
-      if (!(await authed(req, env))) return new Response("not found", { status: 404 });
+      if (await authFail(req, env)) return new Response("not found", { status: 404 });
       const { keys } = await env.SHARES.list({ limit: 1000 });
       const items = keys
         .map((k) => ({ id: k.name, url: `${url.origin}/share/${k.name}`, ...k.metadata }))
@@ -60,7 +64,7 @@ export default {
     }
 
     if (req.method === "DELETE" && m[1]) {
-      if (!(await authed(req, env))) return new Response("not found", { status: 404 });
+      if (await authFail(req, env)) return new Response("not found", { status: 404 });
       await env.SHARES.delete(m[1]);
       return new Response(null, { status: 204 });
     }

@@ -43,7 +43,10 @@ const before = ghCalls;
 assert.equal((await worker.fetch(post(html, {}), env, ctx)).status, 401);
 assert.equal((await worker.fetch(post(html, { authorization: "Bearer not-a-github-token" }), env, ctx)).status, 401);
 assert.equal(ghCalls, before, "malformed tokens must not reach GitHub");
-assert.equal((await worker.fetch(post(html, { authorization: `Bearer ${OTHER_TOKEN}` }), env, ctx)).status, 401);
+const other = await worker.fetch(post(html, { authorization: `Bearer ${OTHER_TOKEN}` }), env, ctx);
+assert.equal(other.status, 401);
+assert.equal(await other.text(), "unauthorized: not owner", "401 names the reason, never the token");
+assert.equal(await (await worker.fetch(post(html, { authorization: "Bearer gho_" + "c".repeat(36) }), env, ctx)).text(), "unauthorized: github 401");
 assert.equal((await worker.fetch(post(html), { ...env, SHARE_OWNER: "" }, ctx)).status, 401);
 // list/delete are hidden from anyone but the owner
 assert.equal((await worker.fetch(new Request("https://share.test/share"), env, ctx)).status, 404);
