@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>term</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #1a1b26; overflow: hidden; }
+  #t { position: fixed; inset: 0; padding: 4px; }
+  #msg { position: fixed; top: 8px; right: 12px; font: 12px ui-monospace, monospace; color: #a9b1d6;
+         background: #24283b; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  #msg.on { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="t"></div>
+<div id="msg"></div>
+<script type="module">
+// Served by `ttyd -I term/index.html herdr` at term.outman.cc. Cloudflare Access does the login;
+// this page only speaks ttyd's websocket protocol (first byte = command, rest = payload).
+const ENGINE = new URLSearchParams(location.search).get('engine');   // ?engine=xterm forces the fallback
+const theme = { background: '#1a1b26', foreground: '#a9b1d6', cursor: '#c0caf5', selectionBackground: '#33467c',
+  black: '#15161e', red: '#f7768e', green: '#9ece6a', yellow: '#e0af68', blue: '#7aa2f7', magenta: '#bb9af7', cyan: '#7dcfff', white: '#a9b1d6',
+  brightBlack: '#414868', brightRed: '#f7768e', brightGreen: '#9ece6a', brightYellow: '#e0af68', brightBlue: '#7aa2f7', brightMagenta: '#bb9af7', brightCyan: '#7dcfff', brightWhite: '#c0caf5' };
+const opts = { fontSize: 14, fontFamily: '"JetBrains Mono", Menlo, "SF Mono", ui-monospace, monospace', theme, scrollback: 5000, cursorBlink: true };
+
+// The only place the engine is chosen. ghostty-web first; xterm.js if it fails to load or ?engine=xterm.
+async function makeTerm() {
+  if (ENGINE !== 'xterm') {
+    try {
+      const g = await import('https://cdn.jsdelivr.net/npm/ghostty-web@0.4.0/dist/ghostty-web.js');
+      await g.init();
+      return { term: new g.Terminal(opts), fit: new g.FitAddon(), engine: 'ghostty' };
+    } catch (e) { console.warn('ghostty-web failed, falling back to xterm.js', e); }
+  }
+  const x = await import('https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm');
+  const f = await import('https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/+esm');
+  document.head.insertAdjacentHTML('beforeend', '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">');
+  return { term: new x.Terminal(opts), fit: new f.FitAddon(), engine: 'xterm' };
+}
+
+const msg = document.getElementById('msg');
+let msgTimer;
+function show(text, ms) {
+  msg.textContent = text; msg.classList.add('on'); clearTimeout(msgTimer);
+  if (ms) msgTimer = setTimeout(() => msg.classList.remove('on'), ms);
+}
+
+const { term, fit, engine } = await makeTerm();
+term.loadAddon(fit);
+term.open(document.getElementById('t'));
+fit.fit();
+new ResizeObserver(() => fit.fit()).observe(document.getElementById('t'));
+show(engine, 1500);
+
+const enc = new TextEncoder(), dec = new TextDecoder();
+let ws, wantReconnect = true;
+
+async function connect() {
+  let token = '';
+  try { token = (await (await fetch('token')).json()).token ?? ''; } catch {}
+  const url = new URL('ws', location.href); url.protocol = url.protocol.replace('http', 'ws');
+  ws = new WebSocket(url, ['tty']);
+  ws.binaryType = 'arraybuffer';
+  ws.onopen = () => {
+    ws.send(enc.encode(JSON.stringify({ AuthToken: token, columns: term.cols, rows: term.rows })));
+    show('connected', 800); term.focus();
+  };
+  ws.onmessage = e => {
+    const buf = new Uint8Array(e.data), cmd = String.fromCharCode(buf[0]), data = buf.subarray(1);
+    if (cmd === '0') term.write(data);
+    else if (cmd === '1') document.title = dec.decode(data);
+    // '2' = ttyd client preferences for its own page; ignored.
+  };
+  ws.onclose = e => {
+    if (e.code === 1000 || !wantReconnect) { show('closed — press Enter to reconnect'); return; }
+    show('reconnecting…'); setTimeout(connect, 1500);   // ponytail: fixed delay, add backoff if it ever hammers
+  };
+}
+
+term.onData(d => { if (ws?.readyState === 1) { const p = enc.encode('\0' + d); p[0] = 48; ws.send(p); } });   // '0' + utf8
+term.onResize(({ cols, rows }) => ws?.readyState === 1 && ws.send(enc.encode('1' + JSON.stringify({ columns: cols, rows }))));
+term.onKey(({ domEvent }) => { if (domEvent.key === 'Enter' && ws?.readyState === 3) connect(); });
+
+// Mac-style clipboard: Cmd+C copies the selection, Cmd+V pastes; everything else goes to the pty.
+term.attachCustomKeyEventHandler(ev => {
+  if (ev.metaKey && ev.key === 'c' && term.hasSelection()) { navigator.clipboard.writeText(term.getSelection()); return false; }
+  if (ev.metaKey && ev.key === 'v') { navigator.clipboard.readText().then(t => term.paste(t)); return false; }
+  return true;
+});
+window.addEventListener('beforeunload', () => { wantReconnect = false; ws?.close(1000); });
+connect();
+</script>
+</body>
+</html>

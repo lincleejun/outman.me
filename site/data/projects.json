@@ -3,6 +3,13 @@
   "tagline": "event in, context out",
   "projects": [
     {
+      "name": "term",
+      "href": "https://term.outman.cc",
+      "pitch": "浏览器里的家用终端：Ghostty 内核的 web term 接 herdr，Cloudflare Access 登录，不开端口不走 SSH",
+      "year": "2026",
+      "tier": 1
+    },
+    {
       "name": "mario-arena",
       "href": "https://github.com/lincleejun/mario-arena",
       "pitch": "any model, script or human plays Super Mario Bros. from RAM state — players decide, the harness runs the game and keeps score",

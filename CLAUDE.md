@@ -9,6 +9,7 @@ This repo is the infra for **outman.cc**. Read this first; `README.md` has the h
 | Change the homepage | `site/data/projects.json` (content) · `site/index.html` (layout). Push to `main` → Vercel redeploys. |
 | Add a redirect on outman.cc | `site/vercel.json` |
 | Add a sub-project at `<name>.outman.cc` | `scripts/new-project.sh <name> <dir>` (needs `bunx vercel login` + `gh` login; the CNAME is made by `.github/workflows/dns.yml`), then add an entry to `projects.json` |
+| Open a terminal on the home machine from any browser | `https://term.outman.cc` (Cloudflare Access login). Page is `term/index.html`, served by `ttyd -I` on that machine (`~/Library/LaunchAgents/cc.outman.term.plist`, tunnel `cc.outman.term-tunnel.plist`); edit the page, then `launchctl kickstart -k gui/$UID/cc.outman.term`. `?engine=xterm` swaps ghostty-web for xterm.js; `?arg=--session&arg=<name>` opens another herdr session |
 | Share an HTML page with someone | `skills/share-page/share publish page.html` → `https://share.outman.cc/share/<id>`. Skill dir is the source of truth; machines run `scripts/install.sh` to get a copy. one CLI `share publish|list|get|grep|sync`, `RULE.md` |
 | Read a web page's full text (never WebFetch, it summarises) | `skills/fetch-page/fetch <url>` → markdown on stdout, html+md kept in `~/.cache/outman/fetch/`. `--all` for whole body. `guard.sh` + `hook.json` block WebFetch (PreToolUse); `install.sh` registers it. |
 | Change the share worker | `share/worker.js` · run `node share/test.mjs` · push to `main` → `.github/workflows/share.yml` deploys |
