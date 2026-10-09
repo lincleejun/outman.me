@@ -20,15 +20,16 @@
 <script type="module">
 // Served by `ttyd -I term/index.html herdr` at term.outman.cc. Cloudflare Access does the login;
 // this page only speaks ttyd's websocket protocol (first byte = command, rest = payload).
-const ENGINE = new URLSearchParams(location.search).get('engine');   // ?engine=xterm forces the fallback
+const ENGINE = new URLSearchParams(location.search).get('engine');   // default xterm.js; ?engine=ghostty opts into ghostty-web
 const theme = { background: '#1a1b26', foreground: '#a9b1d6', cursor: '#c0caf5', selectionBackground: '#33467c',
   black: '#15161e', red: '#f7768e', green: '#9ece6a', yellow: '#e0af68', blue: '#7aa2f7', magenta: '#bb9af7', cyan: '#7dcfff', white: '#a9b1d6',
   brightBlack: '#414868', brightRed: '#f7768e', brightGreen: '#9ece6a', brightYellow: '#e0af68', brightBlue: '#7aa2f7', brightMagenta: '#bb9af7', brightCyan: '#7dcfff', brightWhite: '#c0caf5' };
 const opts = { fontSize: 14, fontFamily: '"JetBrains Mono", Menlo, "SF Mono", ui-monospace, monospace', theme, scrollback: 5000, cursorBlink: true };
 
-// The only place the engine is chosen. ghostty-web first; xterm.js if it fails to load or ?engine=xterm.
+// The only place the engine is chosen. xterm.js by default: ghostty-web 0.4.0 does not report mouse events to the pty
+// (hasMouseTracking() is true but no SGR sequences are sent), so TUIs like herdr can't be clicked. Re-check on upgrade.
 async function makeTerm() {
-  if (ENGINE !== 'xterm') {
+  if (ENGINE === 'ghostty') {
     try {
       const g = await import('https://cdn.jsdelivr.net/npm/ghostty-web@0.4.0/dist/ghostty-web.js');
       await g.init();
@@ -85,13 +86,12 @@ term.onData(d => { if (ws?.readyState === 1) { const p = enc.encode('\0' + d); p
 term.onResize(({ cols, rows }) => ws?.readyState === 1 && ws.send(enc.encode('1' + JSON.stringify({ columns: cols, rows }))));
 term.onKey(({ domEvent }) => { if (domEvent.key === 'Enter' && ws?.readyState === 3) connect(); });
 
-// Mac-style clipboard: Cmd+C copies the selection, Cmd+V pastes; everything else goes to the pty.
-// ponytail: ghostty-web 0.4.0 inverts xterm.js's return value (true = "handled, skip"), so map per engine; drop when upstream fixes it.
-const LET_TERM_HANDLE = engine !== 'ghostty', CONSUMED = !LET_TERM_HANDLE;
-term.attachCustomKeyEventHandler(ev => {
-  if (ev.metaKey && ev.key === 'c' && term.hasSelection()) { navigator.clipboard.writeText(term.getSelection()); return CONSUMED; }
-  if (ev.metaKey && ev.key === 'v') { navigator.clipboard.readText().then(t => term.paste(t)); return CONSUMED; }
-  return LET_TERM_HANDLE;
+// xterm.js handles Cmd+C/V natively through its textarea. ghostty-web doesn't, so wire the clipboard by hand there.
+// Note its handler return value is inverted vs xterm.js: true = "handled, skip the terminal".
+if (engine === 'ghostty') term.attachCustomKeyEventHandler(ev => {
+  if (ev.metaKey && ev.key === 'c' && term.hasSelection()) { navigator.clipboard.writeText(term.getSelection()); return true; }
+  if (ev.metaKey && ev.key === 'v') { navigator.clipboard.readText().then(t => term.paste(t)); return true; }
+  return false;
 });
 window.addEventListener('beforeunload', () => { wantReconnect = false; ws?.close(1000); });
 connect();
