@@ -49,6 +49,7 @@ function show(text, ms) {
 
 const { term, fit, engine } = await makeTerm();
 term.loadAddon(fit);
+window.__term = term;   // debug handle
 term.open(document.getElementById('t'));
 fit.fit();
 new ResizeObserver(() => fit.fit()).observe(document.getElementById('t'));
@@ -61,7 +62,7 @@ async function connect() {
   let token = '';
   try { token = (await (await fetch('token')).json()).token ?? ''; } catch {}
   const url = new URL('ws', location.href); url.protocol = url.protocol.replace('http', 'ws');
-  ws = new WebSocket(url, ['tty']);
+  ws = new WebSocket(url, ['tty']); window.__ws = ws;
   ws.binaryType = 'arraybuffer';
   ws.onopen = () => {
     ws.send(enc.encode(JSON.stringify({ AuthToken: token, columns: term.cols, rows: term.rows })));
@@ -84,10 +85,12 @@ term.onResize(({ cols, rows }) => ws?.readyState === 1 && ws.send(enc.encode('1'
 term.onKey(({ domEvent }) => { if (domEvent.key === 'Enter' && ws?.readyState === 3) connect(); });
 
 // Mac-style clipboard: Cmd+C copies the selection, Cmd+V pastes; everything else goes to the pty.
+// ponytail: ghostty-web 0.4.0 inverts xterm.js's return value (true = "handled, skip"), so map per engine; drop when upstream fixes it.
+const LET_TERM_HANDLE = engine !== 'ghostty', CONSUMED = !LET_TERM_HANDLE;
 term.attachCustomKeyEventHandler(ev => {
-  if (ev.metaKey && ev.key === 'c' && term.hasSelection()) { navigator.clipboard.writeText(term.getSelection()); return false; }
-  if (ev.metaKey && ev.key === 'v') { navigator.clipboard.readText().then(t => term.paste(t)); return false; }
-  return true;
+  if (ev.metaKey && ev.key === 'c' && term.hasSelection()) { navigator.clipboard.writeText(term.getSelection()); return CONSUMED; }
+  if (ev.metaKey && ev.key === 'v') { navigator.clipboard.readText().then(t => term.paste(t)); return CONSUMED; }
+  return LET_TERM_HANDLE;
 });
 window.addEventListener('beforeunload', () => { wantReconnect = false; ws?.close(1000); });
 connect();
