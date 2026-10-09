@@ -8,6 +8,7 @@
   :root { color-scheme: dark; }
   html, body { margin: 0; height: 100%; background: #1a1b26; overflow: hidden; }
   #t { position: fixed; inset: 0; padding: 4px; }
+  #t textarea { caret-color: transparent; }   /* ghostty-web's hidden input textarea still paints its native caret at the top-left */
   #msg { position: fixed; top: 8px; right: 12px; font: 12px ui-monospace, monospace; color: #a9b1d6;
          background: #24283b; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity .2s; pointer-events: none; }
   #msg.on { opacity: 1; }
